@@ -1,0 +1,163 @@
+name: Project Automation
+
+on:
+  issues:
+    types: [opened, reopened, labeled, unlabeled]
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  automate-project:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+
+    steps:
+      # STEP 1: Auto-label and comment with BOT identity 🤖
+      - name: Auto-label and sponsor detection
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}  # Built-in token = github-actions[bot]
+          script: |
+            const isPR = !!context.payload.pull_request;
+            const item = isPR ? context.payload.pull_request : context.payload.issue;
+            const itemAuthor = item.user.login;
+            const itemBody = item.body || '';
+            const isNew = context.payload.action === 'opened';
+
+            // Only label new issues (not PRs)
+            if (!isPR && isNew) {
+              // Extract priority from issue body
+              const priorityMatch = itemBody.match(/### Priority\s*\n\s*(.+)/i) ||
+                                   itemBody.match(/### Urgency\s*\n\s*(.+)/i);
+
+              let priorityLabel = null;
+              if (priorityMatch) {
+                const selection = priorityMatch[1].trim().toLowerCase();
+                // Match priority at the START to avoid false matches like "not critical"
+                if (selection.startsWith('critical')) {
+                  priorityLabel = 'priority: critical';
+                } else if (selection.startsWith('high')) {
+                  priorityLabel = 'priority: high';
+                } else if (selection.startsWith('medium')) {
+                  priorityLabel = 'priority: medium';
+                } else if (selection.startsWith('low')) {
+                  priorityLabel = 'priority: low';
+                }
+              }
+
+              // Add priority label if found
+              if (priorityLabel) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: item.number,
+                  labels: [priorityLabel]
+                });
+                console.log(`✅ Added label: ${priorityLabel}`);
+              }
+
+              // Check sponsor status
+              try {
+                const query = `
+                  query($sponsor: String!) {
+                    user(login: $sponsor) {
+                      sponsorshipsAsMaintainer(first: 100) {
+                        nodes {
+                          sponsorEntity {
+                            ... on User {
+                              login
+                            }
+                            ... on Organization {
+                              login
+                            }
+                          }
+                          tier {
+                            monthlyPriceInDollars
+                          }
+                        }
+                      }
+                    }
+                  }
+                `;
+
+                const result = await github.graphql(query, {
+                  sponsor: 'Abdelakil'
+                });
+
+                const sponsors = result.user.sponsorshipsAsMaintainer.nodes;
+                const isSponsor = sponsors.some(s =>
+                  s.sponsorEntity.login.toLowerCase() === itemAuthor.toLowerCase()
+                );
+
+                if (isSponsor) {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: item.number,
+                    labels: ['sponsor']
+                  });
+
+                  const sponsorship = sponsors.find(s =>
+                    s.sponsorEntity.login.toLowerCase() === itemAuthor.toLowerCase()
+                  );
+                  const tier = sponsorship?.tier?.monthlyPriceInDollars || 0;
+
+                  let thankYouMessage = `💖 **Thank you for being a GitHub Sponsor!**\n\n`;
+                  thankYouMessage += `Hi @${itemAuthor}, thank you so much for your support! `;
+
+                  if (tier >= 15) {
+                    thankYouMessage += `As a **$${tier}/month sponsor**, your issue will receive **priority review and triage**.\n\n`;
+                    thankYouMessage += `I'll get back to you as soon as possible. Your support helps keep this project alive and growing! 🚀`;
+                  } else {
+                    thankYouMessage += `Your support helps keep this project alive and growing! 🚀\n\n`;
+                    thankYouMessage += `*Although this tier doesn't include priority support, I greatly appreciate your contribution!* 🙏`;
+                  }
+
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: item.number,
+                    body: thankYouMessage
+                  });
+                  console.log(`✅ Added sponsor label and comment`);
+                }
+              } catch (error) {
+                // Silently fail - don't comment on errors
+                console.log(`⚠️ Sponsor check failed: ${error.message}`);
+              }
+            }
+
+            console.log(`✅ Labeling step completed as github-actions[bot]`);
+
+      # STEP 2: Add to GitHub Projects with USER identity 👤
+      - name: Add to GitHub Project
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}  # Personal token = your identity
+          script: |
+            const isPR = !!context.payload.pull_request;
+            const item = isPR ? context.payload.pull_request : context.payload.issue;
+            const isNew = context.payload.action === 'opened';
+            const isReopened = context.payload.action === 'reopened';
+
+            // Fetch fresh labels (in case step 1 added new ones)
+            const issueData = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: item.number
+            });
+            const labels = issueData.data.labels.map(l => l.name);
+
+            // You'll need to create a project and get its ID
+            // For now, this step will be skipped until you set up the project
+            console.log(`⚠️ Project integration not configured - skipping project addition`);
+            console.log(`To enable project automation:`);
+            console.log(`1. Create a GitHub Project for this repository`);
+            console.log(`2. Get the project ID from the project URL`);
+            console.log(`3. Update the projectId variable in this workflow`);
+            console.log(`4. Add PROJECT_TOKEN secret to repository settings`);
+
+            console.log(`✅ Automation completed (project step skipped)`);

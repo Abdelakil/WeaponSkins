@@ -1,0 +1,122 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in WeaponSkins
+title: "[Bug]: "
+labels: ["bug"]
+assignees:
+  - Abdelakil
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this bug in WeaponSkins! Please fill out the form below with as much detail as possible.
+
+        ---
+
+        💖 **I automatically detect GitHub Sponsors!**
+        Sponsors are automatically labeled. Priority support is available from the **$15/month tier** and above. [Become a Sponsor](https://github.com/sponsors/Abdelakil)
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How critical is this bug?
+      options:
+        - Low - Minor issue, workaround available
+        - Medium - Affects functionality but not critical
+        - High - Significant impact on functionality
+        - Critical - Blocking issue, immediate attention required
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is. Include any logs, screenshots, or additional information that may help.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Start the server with WeaponSkins plugin
+        2. Run '!wp' command
+        3. Try to change weapon skin
+        4. See error
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected_area
+    attributes:
+      label: Affected Area
+      description: What part of WeaponSkins is affected?
+      options:
+        - Weapon skins
+        - Glove skins
+        - Knife skins
+        - Agent models
+        - Music kits
+        - Menu/Commands
+        - Database/Storage
+        - Performance
+        - Other
+      default: 0
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: WeaponSkins Version
+      description: Which version of WeaponSkins are you using?
+      placeholder: "e.g., v0.4.4"
+    validations:
+      required: true
+
+  - type: input
+    id: swiftly_version
+    attributes:
+      label: SwiftlyS2 Version
+      description: Which version of SwiftlyS2 are you using?
+      placeholder: "e.g., v1.2.3"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Server Operating System
+      description: What OS is the SERVER running on?
+      options:
+        - Windows
+        - Linux
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Please paste any relevant error logs or console output
+      placeholder: Paste logs here...
+      render: shell
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Submission Checklist
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues and confirmed this is not a duplicate
+          required: true
+        - label: I have included all necessary information to reproduce and fix this bug
+          required: true
+        - label: I have tested with the latest version of WeaponSkins
+          required: true
