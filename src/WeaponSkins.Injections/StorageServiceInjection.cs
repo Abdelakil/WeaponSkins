@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-
+using Microsoft.Extensions.Logging;
+using SwiftlyS2.Shared;
 using WeaponSkins.Database;
+using WeaponSkins.Services;
 
 namespace WeaponSkins.Injections;
 
