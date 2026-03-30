@@ -55,7 +55,7 @@ jobs:
     - name: Update Version in Source Code
       shell: pwsh
       run: |
-        $version = '"${{ needs.versioning.outputs.semVer }}"'
+        $version = "${{ needs.versioning.outputs.semVer }}"
         Get-ChildItem -Path . -Filter "*.cs" -Recurse | ForEach-Object {
             $content = Get-Content $_.FullName
             if ($content -match 'WORKFLOW_VERSION') {
