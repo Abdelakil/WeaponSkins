@@ -214,7 +214,10 @@ public class AutoSyncService : IDisposable
 
     private async Task<bool> CheckAndSyncPlayerAsync(ulong steamId)
     {
-        // Build a hash of current DB state for this player
+        // Skip invalid SteamID 0
+        if (steamId == 0)
+            return false;
+
         var newHash = await BuildPlayerDataHashAsync(steamId);
         var oldHash = _playerDataHashes.GetValueOrDefault(steamId, "");
 

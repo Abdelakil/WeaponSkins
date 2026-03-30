@@ -43,14 +43,17 @@ public partial class DatabaseService
     {
         var skins = await fsql.Select<SkinModel>()
             .Where(s => s.SteamID == steamId)
-            .ToListAsync(s => new { s.Team, s.DefinitionIndex, s.PaintID, s.Wear, s.Seed, s.Stattrak, s.StattrakCount, s.Nametag });
+            .ToListAsync(s => new { s.Team, s.DefinitionIndex, s.PaintID, s.Wear, s.Seed, s.Stattrak, s.Nametag });
 
         if (skins.Count == 0) return "";
 
         var sb = new StringBuilder();
         foreach (var s in skins.OrderBy(x => x.Team).ThenBy(x => x.DefinitionIndex))
         {
-            sb.Append($"{s.Team}:{s.DefinitionIndex}:{s.PaintID}:{s.Wear}:{s.Seed}:{s.Stattrak}:{s.StattrakCount}:{s.Nametag ?? ""}|");
+            // Normalize wear value to prevent floating-point precision issues
+            // EXCLUDE StattrakCount from checksum since it increments during gameplay
+            var normalizedWear = s.Wear.ToString("F8", System.Globalization.CultureInfo.InvariantCulture);
+            sb.Append($"{s.Team}:{s.DefinitionIndex}:{s.PaintID}:{normalizedWear}:{s.Seed}:{s.Stattrak}:{s.Nametag ?? ""}|");
         }
 
         return ComputeHash(sb);
@@ -70,14 +73,15 @@ public partial class DatabaseService
             sb.Append($"{k.Team}:{k.Knife}|");
         }
 
-        // Also factor in skin data for knife definition indices
-        var skinData = await fsql.Select<SkinModel>()
+        // Only include knife definition indices from skins, not all skin data
+        // This prevents false positives when skin data changes
+        var knifeSkins = await fsql.Select<SkinModel>()
             .Where(s => s.SteamID == steamId && s.DefinitionIndex >= 500 && s.DefinitionIndex < 600)
-            .ToListAsync(s => new { s.Team, s.DefinitionIndex, s.PaintID, s.Wear, s.Seed, s.Stattrak, s.StattrakCount, s.Nametag });
+            .ToListAsync(s => new { s.Team, s.DefinitionIndex });
 
-        foreach (var s in skinData.OrderBy(x => x.Team).ThenBy(x => x.DefinitionIndex))
+        foreach (var s in knifeSkins.OrderBy(x => x.Team).ThenBy(x => x.DefinitionIndex))
         {
-            sb.Append($"{s.Team}:{s.DefinitionIndex}:{s.PaintID}:{s.Wear}:{s.Seed}:{s.Stattrak}:{s.StattrakCount}:{s.Nametag ?? ""}|");
+            sb.Append($"{s.Team}:{s.DefinitionIndex}|");
         }
 
         return ComputeHash(sb);
@@ -97,14 +101,17 @@ public partial class DatabaseService
             sb.Append($"{g.Team}:{g.DefinitionIndex}|");
         }
 
-        // Also factor in skin data for glove definition indices
-        var skinData = await fsql.Select<SkinModel>()
+        // Only include glove definition indices and normalized wear from skins, not all skin data
+        // This prevents false positives when skin data changes
+        var gloveSkins = await fsql.Select<SkinModel>()
             .Where(s => s.SteamID == steamId && s.DefinitionIndex > 5000)
-            .ToListAsync(s => new { s.Team, s.DefinitionIndex, s.PaintID, s.Wear, s.Seed });
+            .ToListAsync(s => new { s.Team, s.DefinitionIndex, s.Wear });
 
-        foreach (var s in skinData.OrderBy(x => x.Team).ThenBy(x => x.DefinitionIndex))
+        foreach (var s in gloveSkins.OrderBy(x => x.Team).ThenBy(x => x.DefinitionIndex))
         {
-            sb.Append($"{s.Team}:{s.DefinitionIndex}:{s.PaintID}:{s.Wear}:{s.Seed}|");
+            // Normalize wear value to prevent floating-point precision issues
+            var normalizedWear = s.Wear.ToString("F8", System.Globalization.CultureInfo.InvariantCulture);
+            sb.Append($"{s.Team}:{s.DefinitionIndex}:{normalizedWear}|");
         }
 
         return ComputeHash(sb);
