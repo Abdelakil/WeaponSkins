@@ -265,7 +265,9 @@ public class WeaponSkinAPI : IWeaponSkinAPI
         int musicKitIndex,
         bool permanent = true)
     {
-        DataService.MusicKitDataService.SetMusicKit(steamid, musicKitIndex);
+        // Store for both teams since API doesn't specify team
+        DataService.MusicKitDataService.SetMusicKit(steamid, Team.T, musicKitIndex);
+        DataService.MusicKitDataService.SetMusicKit(steamid, Team.CT, musicKitIndex);
         InventoryService.UpdateMusicKit(steamid, musicKitIndex);
         if (permanent)
         {
@@ -273,10 +275,30 @@ public class WeaponSkinAPI : IWeaponSkinAPI
         }
     }
 
+    public void SetMusicKit(ulong steamid,
+        Team team,
+        int musicKitIndex,
+        bool permanent = true)
+    {
+        DataService.MusicKitDataService.SetMusicKit(steamid, team, musicKitIndex);
+        InventoryService.UpdateMusicKit(steamid, team, musicKitIndex);
+        if (permanent)
+        {
+            var _ = Task.Run(async () => {
+                if (StorageService.Get() is DatabaseService dbService)
+                {
+                    await dbService.StoreMusicKitAsync(steamid, team, musicKitIndex);
+                }
+            });
+        }
+    }
+
     public void ResetMusicKit(ulong steamid,
         bool permanent = true)
     {
-        DataService.MusicKitDataService.RemoveMusicKit(steamid);
+        // Remove from both teams since API doesn't specify team
+        DataService.MusicKitDataService.RemoveMusicKit(steamid, Team.T);
+        DataService.MusicKitDataService.RemoveMusicKit(steamid, Team.CT);
         InventoryService.ResetMusicKit(steamid);
         if (permanent)
         {

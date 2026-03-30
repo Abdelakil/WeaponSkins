@@ -92,5 +92,12 @@ public class WeaponSkinGetterAPI
 
         return false;
     }
+
+    public bool TryGetMusicKits(ulong steamid,
+        [MaybeNullWhen(false)] out IEnumerable<MusicKitData> result)
+    {
+        result = null;
+        return DataService.MusicKitDataService.TryGetMusicKits(steamid, out result);
+    }
 }
 

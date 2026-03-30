@@ -64,7 +64,8 @@ public partial class WeaponSkins : BasePlugin
             .AddStattrakService()
             .AddLocalizationService()
             .AddItemPermissionService()
-            .AddCommandService();
+            .AddCommandService()
+            .AddWpCommandService();
 
 
         collection
@@ -85,11 +86,13 @@ public partial class WeaponSkins : BasePlugin
             .UseStattrakService()
             .UseLocalizationService()
             .UseItemPermissionService()
-            .UseCommandService();
+            .UseCommandService()
+            .UseWpCommandService();
     }
 
     public override void Unload()
     {
+        _provider.GetRequiredService<AutoSyncService>().Dispose();
     }
 
     public override void ConfigureSharedInterface(IInterfaceManager interfaceManager)

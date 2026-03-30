@@ -54,7 +54,13 @@ public class HookInventoryUpdateService : IInventoryUpdateService
             if (player.Controller is { IsValid: true, InventoryServices.IsValid: true } controller)
             {
                 ApplyPlayerWeapons(player);
-                ApplyPlayerGlove(player);
+                // Agent FIRST, then gloves after delay (SetModel resets EconGloves)
+                ApplyPlayerAgent(player);
+                Core.Scheduler.DelayBySeconds(0.2f, () =>
+                {
+                    if (!player.IsAlive()) return;
+                    ApplyPlayerGlove(player);
+                });
             }
         }
     }
@@ -84,16 +90,19 @@ public class HookInventoryUpdateService : IInventoryUpdateService
     {
         IPlayer player = @event.UserIdPlayer;
 
+        // Step 1: Apply agent FIRST (takes ~2 ticks to complete model changes)
         Core.Scheduler.NextWorldUpdate(() =>
         {
-            ApplyPlayerGlove(player);
             ApplyPlayerAgent(player);
         });
 
-        Core.Scheduler.DelayBySeconds(0.1f, () =>
+        // Step 2: Apply gloves AFTER agent model is fully settled
+        // Agent needs ~2 ticks; 200ms delay ensures model changes are complete
+        // Gloves MUST always be applied LAST because SetModel() resets EconGloves state
+        Core.Scheduler.DelayBySeconds(0.2f, () =>
         {
+            if (!player.IsAlive()) return;
             ApplyPlayerGlove(player);
-            ApplyPlayerAgent(player);
         });
 
         return HookResult.Continue;
@@ -562,6 +571,7 @@ public class HookInventoryUpdateService : IInventoryUpdateService
                 econGloves.AttributeList.SetOrAddAttribute("set item texture seed", glove.PaintkitSeed);
                 econGloves.AttributeList.SetOrAddAttribute("set item texture wear", glove.PaintkitWear);
                 econGloves.Initialized = true;
+                
                 pawn.AcceptInput("SetBodygroup", "default_gloves,1");
             });
         });

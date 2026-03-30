@@ -198,6 +198,12 @@ public class EmptyStorageProvider : IStorageProvider
         return Task.FromResult<IEnumerable<(ulong, int)>>(new List<(ulong, int)>());
     }
 
+    public Task StoreMusicKitAsync(ulong steamId, Team team, int musicKitIndex)
+    {
+        WarnEmpty();
+        return Task.CompletedTask;
+    }
+
     public Task RemoveMusicKitAsync(ulong steamId)
     {
         WarnEmpty();

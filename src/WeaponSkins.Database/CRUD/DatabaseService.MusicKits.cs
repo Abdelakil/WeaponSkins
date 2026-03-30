@@ -1,3 +1,5 @@
+using SwiftlyS2.Shared.Players;
+
 namespace WeaponSkins.Database;
 
 public partial class DatabaseService
@@ -16,10 +18,24 @@ public partial class DatabaseService
             .ExecuteAffrowsAsync();
     }
 
+    public async Task StoreMusicKitAsync(ulong steamId, Team team, int musicKitIndex)
+    {
+        var model = MusicKitModel.FromDataModel(steamId, (int)team, musicKitIndex);
+        await fsql.InsertOrUpdate<MusicKitModel>()
+            .SetSource(model)
+            .ExecuteAffrowsAsync();
+    }
+
     public async Task<int?> GetMusicKitAsync(ulong steamId)
     {
+        // Return T team music kit as fallback for old interface
+        return await GetMusicKitAsync(steamId, Team.T);
+    }
+
+    public async Task<int?> GetMusicKitAsync(ulong steamId, Team team)
+    {
         var model = await fsql.Select<MusicKitModel>()
-            .Where(mk => mk.SteamID == steamId.ToString())
+            .Where(mk => mk.SteamID == steamId.ToString() && mk.WeaponTeam == (int)team)
             .ToOneAsync();
         return model?.MusicID;
     }
@@ -29,7 +45,15 @@ public partial class DatabaseService
         var models = await fsql.Select<MusicKitModel>()
             .Where(mk => mk.SteamID == steamId.ToString())
             .ToListAsync();
-        return models.Select(m => (ulong.Parse(m.SteamID), m.MusicID)).Distinct();
+        return models.Select(m => (ulong.Parse(m.SteamID), m.MusicID));
+    }
+
+    public async Task<IEnumerable<(Team Team, int MusicKitIndex)>> GetMusicKitsByTeamAsync(ulong steamId)
+    {
+        var models = await fsql.Select<MusicKitModel>()
+            .Where(mk => mk.SteamID == steamId.ToString())
+            .ToListAsync();
+        return models.Select(m => ((Team)m.WeaponTeam, m.MusicID));
     }
 
     public async Task<IEnumerable<(ulong SteamID, int MusicKitIndex)>> GetAllMusicKitsAsync()

@@ -382,6 +382,61 @@ public class CCSPlayerInventory : INativeHandle
         return _defaultLoadouts[(Team)0, loadout_slot_t.LOADOUT_SLOT_MUSICKIT].ItemId;
     }
 
+    public void UpdateMusicKit(Team team, int musicKitIndex)
+    {
+        Core.Scheduler.NextWorldUpdate(() =>
+        {
+            // Clear both teams first to avoid conflicts
+            for (int teamIndex = 0; teamIndex < 2; teamIndex++)
+            {
+                var clearTeam = (Team)teamIndex;
+                ref var clearLoadout = ref Loadouts[clearTeam, loadout_slot_t.LOADOUT_SLOT_MUSICKIT];
+                
+                if (IsValidItemID(clearLoadout.ItemId) && TryGetEconItemByItemID(clearLoadout.ItemId, out var oldItem))
+                {
+                    if (clearLoadout.ItemId != GetDefaultMusicKitItemID())
+                    {
+                        SOCache.RemoveObject(oldItem);
+                    }
+                    SODestroyed(SteamID, oldItem);
+                }
+            }
+
+            // Create new item and apply only to the specified team
+            var item = NativeService.CreateCEconItemInstance();
+            
+            item.AccountID = new CSteamID(SteamID).GetAccountID().m_AccountID;
+            item.ItemID = GetNewItemID();
+            item.InventoryPosition = GetNewInventoryPosition();
+            item.DefinitionIndex = 1314;
+            
+            item.ConfigureAttributes(customData =>
+            {
+                customData.SetMusicId(musicKitIndex);
+            });
+            
+            // Apply to the specified team only
+            ref var loadout = ref Loadouts[team, loadout_slot_t.LOADOUT_SLOT_MUSICKIT];
+            loadout.ItemId = item.ItemID;
+            loadout.DefinitionIndex = 1314;
+            
+            // Reset the other team to default
+            var otherTeam = team == Team.T ? Team.CT : Team.T;
+            ref var otherLoadout = ref Loadouts[otherTeam, loadout_slot_t.LOADOUT_SLOT_MUSICKIT];
+            otherLoadout = _defaultLoadouts[otherTeam, loadout_slot_t.LOADOUT_SLOT_MUSICKIT];
+            
+            SOCache.AddObject(item);
+            SOCreated(SteamID, item);
+            SOUpdated(SteamID, item);
+            
+            if (otherTeam == Team.T && TryGetEconItemByItemID(otherLoadout.ItemId, out var otherItem))
+            {
+                SOCreated(SteamID, otherItem);
+                SOUpdated(SteamID, otherItem);
+            }
+        });
+    }
+
     public void ResetMusicKit()
     {
         Core.Scheduler.NextWorldUpdate(() =>

@@ -69,30 +69,31 @@ public class InventoryUpdateService : IInventoryUpdateService
     {
         IPlayer player = @event.UserIdPlayer;
 
+        // Step 1: Apply agent FIRST (takes ~2 ticks to complete model changes)
         Core.Scheduler.NextWorldUpdate(() =>
         {
-            if (Api.TryGetGloveSkins(player.SteamID, out var gloves))
-            {
-                foreach (var glove in gloves)
-                {
-                    player.RegiveGlove(InventoryService.Get(player.SteamID));
-                }
-            }
-
             ApplyPlayerAgent(player);
         });
 
-        Core.Scheduler.DelayBySeconds(0.1f, () =>
+        // Step 2: Apply gloves AFTER agent model is fully settled
+        // Agent needs ~2 ticks; 200ms delay ensures model changes are complete
+        // Gloves MUST always be applied LAST because SetModel() resets EconGloves state
+        Core.Scheduler.DelayBySeconds(0.2f, () =>
         {
+            if (!player.IsAlive()) return;
+            if (!InventoryService.TryGet(player.SteamID, out var inv)) return;
+
             if (Api.TryGetGloveSkins(player.SteamID, out var gloves))
             {
                 foreach (var glove in gloves)
                 {
-                    player.RegiveGlove(InventoryService.Get(player.SteamID));
+                    if (glove.Team == player.Controller.Team)
+                    {
+                        player.RegiveGlove(inv);
+                        break;
+                    }
                 }
             }
-
-            ApplyPlayerAgent(player);
         });
 
         return HookResult.Continue;
@@ -195,10 +196,12 @@ public class InventoryUpdateService : IInventoryUpdateService
                 DataService.AgentDataService.SetAgent(agent.SteamID, agent.Team, agent.AgentIndex);
             }
             
-            var musicKit = await StorageService.Get().GetMusicKitAsync(steamId);
-            if (musicKit.HasValue)
+            var musicKits = await StorageService.Get().GetMusicKitsAsync(steamId);
+            foreach (var musicKit in musicKits)
             {
-                DataService.MusicKitDataService.SetMusicKit(steamId, musicKit.Value);
+                // We don't have team info from the old interface, so store for both teams
+                DataService.MusicKitDataService.SetMusicKit(steamId, Team.T, musicKit.MusicKitIndex);
+                DataService.MusicKitDataService.SetMusicKit(steamId, Team.CT, musicKit.MusicKitIndex);
             }
             
             Core.Scheduler.NextWorldUpdate(() => Update(inventory));
@@ -231,10 +234,8 @@ public class InventoryUpdateService : IInventoryUpdateService
             }
         }
 
-        if (DataService.MusicKitDataService.TryGetMusicKit(inventory.SteamID, out var musicKitIndex))
-        {
-            inventory.UpdateMusicKit(musicKitIndex);
-        }
+        // Music kits are handled in WpCommandService with team-specific application
+        // This prevents applying wrong team's music kit during initial sync
     }
 
     public void UpdateWeaponSkins(IEnumerable<WeaponSkinData> skins)

@@ -1,15 +1,19 @@
+using SwiftlyS2.Shared.Players;
+
 namespace WeaponSkins.Shared;
 
-public class MusicKitData
+public record MusicKitData
 {
-    public ulong SteamID { get; set; }
-    public int MusicKitIndex { get; set; }
+    public required ulong SteamID { get; set; }
+    public required Team Team { get; init; }
+    public required int MusicKitIndex { get; init; }
     
     public MusicKitData DeepClone()
     {
         return new MusicKitData
         {
             SteamID = SteamID,
+            Team = Team,
             MusicKitIndex = MusicKitIndex
         };
     }

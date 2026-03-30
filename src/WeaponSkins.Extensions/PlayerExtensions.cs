@@ -1,8 +1,11 @@
 using SwiftlyS2.Shared;
 using SwiftlyS2.Shared.Players;
 using SwiftlyS2.Shared.SchemaDefinitions;
+using SwiftlyS2.Shared.SteamAPI;
 
 using WeaponSkins.Services;
+using WeaponSkins.Econ;
+using WeaponSkins.Shared;
 
 namespace WeaponSkins.Extensions;
 
@@ -86,8 +89,48 @@ public static class PlayerExtensions
                 econGloves.InventoryPosition = itemInLoadout.InventoryPosition;
                 econGloves.EntityLevel = itemInLoadout.EntityLevel;
                 econGloves.EntityQuality = itemInLoadout.EntityQuality;
+                
                 StaticNativeService.Service.UpdateItemView.CallOriginal(
                     econGloves.Address, 0);
+                player.PlayerPawn.AcceptInput("SetBodygroup", "default_gloves,1");
+            });
+        });
+    }
+
+    public static void ApplyGloveData(this IPlayer player, GloveData gloveData)
+    {
+        Core.Scheduler.NextWorldUpdate(() =>
+        {
+            var model = player.PlayerPawn!.CBodyComponent!.SceneNode.GetSkeletonInstance()
+                .ModelState
+                .ModelName;
+            player.PlayerPawn.SetModel("characters/models/tm_jumpsuit/tm_jumpsuit_varianta.vmdl");
+            player.PlayerPawn.SetModel(model);
+            
+            var econGloves = player.PlayerPawn.EconGloves;
+            econGloves.Initialized = true;
+
+            Core.Scheduler.NextWorldUpdate(() =>
+            {
+                // Apply the specific glove data directly instead of reading from inventory
+                econGloves.ItemDefinitionIndex = gloveData.DefinitionIndex;
+                econGloves.AccountID = new CSteamID(player.SteamID).GetAccountID().m_AccountID;
+                econGloves.ItemID = 0; // Will be set by inventory system
+                econGloves.ItemIDHigh = 0;
+                econGloves.ItemIDLow = 0;
+                econGloves.InventoryPosition = 0;
+                econGloves.EntityLevel = 0;
+                econGloves.EntityQuality = 0;
+                
+                // Apply glove attributes
+                econGloves.NetworkedDynamicAttributes.SetOrAddAttribute("set item texture prefab", gloveData.Paintkit);
+                econGloves.NetworkedDynamicAttributes.SetOrAddAttribute("set item texture seed", gloveData.PaintkitSeed);
+                econGloves.NetworkedDynamicAttributes.SetOrAddAttribute("set item texture wear", gloveData.PaintkitWear);
+                econGloves.AttributeList.SetOrAddAttribute("set item texture prefab", gloveData.Paintkit);
+                econGloves.AttributeList.SetOrAddAttribute("set item texture seed", gloveData.PaintkitSeed);
+                econGloves.AttributeList.SetOrAddAttribute("set item texture wear", gloveData.PaintkitWear);
+                
+                StaticNativeService.Service.UpdateItemView.CallOriginal(econGloves.Address, 0);
                 player.PlayerPawn.AcceptInput("SetBodygroup", "default_gloves,1");
             });
         });

@@ -152,6 +152,14 @@ public class InventoryService
         }
     }
 
+    public void UpdateMusicKit(ulong steamid, Team team, int musicKitIndex)
+    {
+        if (TryGet(steamid, out var inventory))
+        {
+            inventory.UpdateMusicKit(team, musicKitIndex);
+        }
+    }
+
     public void ResetMusicKit(ulong steamid)
     {
         if (TryGet(steamid, out var inventory))

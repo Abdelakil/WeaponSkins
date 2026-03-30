@@ -10,12 +10,18 @@ public class AgentDataService
     private readonly ConcurrentDictionary<ulong, ConcurrentDictionary<Team, int>> _playerAgents = new();
     private readonly ConcurrentDictionary<ulong, ConcurrentDictionary<Team, string>> _playerDefaultModels = new();
 
-    public void SetAgent(ulong steamId,
+    public bool SetAgent(ulong steamId,
         Team team,
         int agentIndex)
     {
         var playerAgents = _playerAgents.GetOrAdd(steamId, _ => new());
-        playerAgents[team] = agentIndex;
+        var oldAgentIndex = playerAgents.GetOrAdd(team, 0);
+        var changed = oldAgentIndex != agentIndex;
+        if (changed)
+        {
+            playerAgents[team] = agentIndex;
+        }
+        return changed;
     }
 
     public void CaptureDefaultModel(ulong steamId,

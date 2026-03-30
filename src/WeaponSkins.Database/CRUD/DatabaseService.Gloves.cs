@@ -43,6 +43,7 @@ public partial class DatabaseService
 
     public async Task<IEnumerable<GloveData>> GetGlovesAsync(ulong steamId)
     {
+        // Get all entries including duplicates, then handle them
         var results = await fsql.Select<GloveModel, SkinModel>()
             .LeftJoin((glove,
                     skin) =>
@@ -53,7 +54,13 @@ public partial class DatabaseService
             .ToListAsync((Glove,
                 Skin) => new { Glove, Skin });
 
-        return results.Select(item =>
+        // Group by glove and take only the first skin entry for each glove to handle duplicates
+        // This matches the behavior of GetGloveAsync which uses ToOneAsync()
+        var groupedResults = results
+            .GroupBy(item => new { item.Glove.SteamID, item.Glove.Team, item.Glove.DefinitionIndex })
+            .Select(group => group.First());  // Take first entry to match GetGloveAsync behavior
+
+        return groupedResults.Select(item =>
         {
             var data = item.Glove.ToDataModel();
 
@@ -70,6 +77,7 @@ public partial class DatabaseService
 
     public async Task<IEnumerable<GloveData>> GetAllGlovesAsync()
     {
+        // Get all entries including duplicates, then handle them
         var results = await fsql.Select<GloveModel, SkinModel>()
             .LeftJoin((glove,
                     skin) =>
@@ -79,7 +87,13 @@ public partial class DatabaseService
             .ToListAsync((Glove,
                 Skin) => new { Glove, Skin });
 
-        return results.Select(item =>
+        // Group by glove and take only the first skin entry for each glove to handle duplicates
+        // This matches the behavior of GetGloveAsync which uses ToOneAsync()
+        var groupedResults = results
+            .GroupBy(item => new { item.Glove.SteamID, item.Glove.Team, item.Glove.DefinitionIndex })
+            .Select(group => group.First());  // Take first entry to match GetGloveAsync behavior
+
+        return groupedResults.Select(item =>
         {
             var data = item.Glove.ToDataModel();
 

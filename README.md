@@ -52,6 +52,50 @@ This configuration helps optimizing your memory usage, reducing 80MB at max.
 Check the `Code` column in this table for all available languages: 
 [Available language codes](https://swiftlys2.net/docs/development/translations/#language-codes)
 
+## `!wp` Command (Manual Skin Refresh)
+Players can type `!wp` in chat to manually synchronize their skins from the database and instantly apply them in-game. This is useful when cosmetics are changed externally (e.g., via a website that modifies the database directly).
+
+```toml
+[Main.WpCommand]
+Enabled = true
+CommandName = "wp"
+CooldownSeconds = 5.0
+Permission = ""
+```
+
+- **`Enabled`** — Enable or disable the `!wp` command.
+- **`CommandName`** — The chat command name (without `!`).
+- **`CooldownSeconds`** — Minimum seconds between uses per player.
+- **`Permission`** — Permission string required to use the command. Leave empty for all players.
+
+### Application Order
+When applying cosmetics (on `!wp`, spawn, or auto-sync), the plugin enforces this strict order:
+1. **Agent model** (first — `SetModel()` resets body components)
+2. **Weapons / Knife** (next tick)
+3. **Gloves** (always last, 200ms after agent — because `SetModel()` destroys `EconGloves` state)
+
+## Auto-Sync (Background Database Change Detection)
+Automatically detects database changes for online players and applies updates in real-time. Uses efficient checksum-based polling — only triggers sync when actual data changes are detected.
+
+```toml
+[Main.AutoSync]
+Enabled = false
+PollingIntervalSeconds = 30.0
+```
+
+- **`Enabled`** — Enable or disable automatic background sync.
+- **`PollingIntervalSeconds`** — How often to check for changes (minimum 5s).
+
+## Debug Logging & Plugin Prefix
+```toml
+[Main]
+PluginPrefix = "[WeaponSkins]"
+DebugLogging = false
+```
+
+- **`PluginPrefix`** — Prefix for all chat messages.
+- **`DebugLogging`** — When `true`, logs detailed information about every DB fetch, inventory update, and cosmetic application (weapon/knife/glove/agent/music with defindex, paint, team).
+
 ## Item Permissions
 Gate entire feature groups with a single permission string in `config.toml`:
 ```toml

@@ -31,6 +31,7 @@ public partial class MenuService
                 var selectOption = new ButtonMenuOption(truncatedName);
                 selectOption.Click += (_, args) =>
                 {
+                    // Use original API to test if it works
                     Api.SetMusicKit(args.Player.SteamID, index);
                     return ValueTask.CompletedTask;
                 };
