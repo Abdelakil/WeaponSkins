@@ -46,7 +46,13 @@ public record SkinModel
 
     private static StickerData ToStickerModel(string sticker)
     {
+        if (string.IsNullOrWhiteSpace(sticker))
+            return new StickerData { Id = 0 };
+
         var parts = sticker.Split(';');
+        if (parts.Length < 7)
+            return new StickerData { Id = 0 };
+
         return new StickerData
         {
             Id = int.Parse(parts[0]),
@@ -68,7 +74,13 @@ public record SkinModel
 
     private static KeychainData ToKeychainModel(string keychain)
     {
+        if (string.IsNullOrWhiteSpace(keychain))
+            return new KeychainData { Id = 0 };
+
         var parts = keychain.Split(';');
+        if (parts.Length < 5)
+            return new KeychainData { Id = 0 };
+
         return new KeychainData
         {
             Id = int.Parse(parts[0]),
